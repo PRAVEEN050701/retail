@@ -10,8 +10,7 @@ pipeline {
 
     environment {
         IMAGE = 'retail-app'
-        CONTAINER = 'retail-app'
-        PORT = '8081'
+        OLD_VERSION = '4.2.1'
     }
 
     stages {
@@ -19,7 +18,7 @@ pipeline {
         stage('Validate') {
             steps {
                 script {
-                    echo "Git commit: ${env.GIT_COMMIT}"
+                    echo "Commit: ${env.GIT_COMMIT}"
 
                     if (params.ENVIRONMENT == 'PRODUCTION' &&
                         params.CONFIRM_PROD != 'YES') {
@@ -40,31 +39,52 @@ pipeline {
             }
         }
 
-        stage('Deploy & Health Check') {
+        stage('Deploy') {
             when {
                 expression { params.DEPLOYMENT_ACTION == 'DEPLOY' }
             }
             steps {
                 script {
                     try {
+                        echo "OLD VERSION: ${OLD_VERSION}"
+                        echo "NEW VERSION: ${params.VERSION}"
+
                         bat """
-                        docker run -d --name ${CONTAINER}-new ^
-                          -p ${PORT}:${PORT} ^
+                        docker rm -f retail-new 2>NUL || exit /b 0
+                        docker run -d --name retail-new ^
+                          -p 8081:8081 ^
                           ${IMAGE}:${params.VERSION}
                         """
 
-                        bat 'powershell -Command "Start-Sleep 15"'
+                        bat 'powershell -Command "Start-Sleep -Seconds 15"'
 
                         bat """
-                        powershell -Command "if ((docker inspect -f '{{.State.Health.Status}}' ${CONTAINER}-new) -ne 'healthy') { exit 1 }"
+                        powershell -Command "if ((docker inspect -f '{{.State.Health.Status}}' retail-new) -ne 'healthy') { exit 1 }"
                         """
 
-                        echo "New version ${params.VERSION} is healthy"
+                        echo "NEW VERSION HEALTHY"
                     }
                     catch (e) {
-                        echo "Health check failed - rolling back"
-                        bat "docker rm -f ${CONTAINER}-new 2>NUL || exit /b 0"
-                        error("Deployment failed - rollback required")
+                        echo "HEALTH CHECK FAILED"
+                        echo "ROLLING BACK TO ${OLD_VERSION}"
+
+                        bat "docker rm -f retail-new 2>NUL || exit /b 0"
+
+                        bat """
+                        docker run -d --name retail-app ^
+                          -p 8081:8081 ^
+                          ${IMAGE}:${OLD_VERSION}
+                        """
+
+                        bat 'powershell -Command "Start-Sleep -Seconds 15"'
+
+                        bat """
+                        powershell -Command "if ((docker inspect -f '{{.State.Health.Status}}' retail-app) -ne 'healthy') { exit 1 }"
+                        """
+
+                        echo "ROLLBACK VERIFIED: ${OLD_VERSION}"
+
+                        error('Deployment failed; rollback completed')
                     }
                 }
             }
@@ -73,7 +93,10 @@ pipeline {
 
     post {
         success {
-            echo "Deployment successful"
+            echo "DEPLOYMENT SUCCESSFUL"
+        }
+        failure {
+            echo "DEPLOYMENT FAILED - CHECK ROLLBACK"
         }
     }
 }
