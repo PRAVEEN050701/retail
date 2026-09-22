@@ -25,7 +25,7 @@ pipeline {
                         error('Production confirmation required')
                     }
 
-                    bat "git tag --list v${params.VERSION}"
+                   bat "\"C:\\Program Files\\Git\\cmd\\git.exe\" tag --list v${params.VERSION}"
                 }
             }
         }
