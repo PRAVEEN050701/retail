@@ -71,7 +71,7 @@ pipeline {
                         bat "docker rm -f retail-new 2>NUL || exit /b 0"
 
                         bat """
-                        docker run -d --name retail-app ^
+                        docker run -d --name retail-new ^
                           -p 8081:8081 ^
                           ${IMAGE}:${OLD_VERSION}
                         """
