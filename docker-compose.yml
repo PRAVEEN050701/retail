@@ -1,0 +1,18 @@
+services:
+  retail-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: retail-app:${VERSION:-4.2.1}
+    container_name: retail-app
+    ports:
+      - "8081:8081"
+    environment:
+      APP_VERSION: "${VERSION:-4.2.1}"
+      ENVIRONMENT: "${ENVIRONMENT:-UAT}"
+    networks:
+      - retail-network
+
+networks:
+  retail-network:
+    name: retail-network
