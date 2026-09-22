@@ -56,8 +56,7 @@ pipeline {
                           ${IMAGE}:${params.VERSION}
                         """
 
-                        bat 'powershell -Command "Start-Sleep -Seconds 15"'
-
+                        bat 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -Command "Start-Sleep -Seconds 15"'
                         bat """
                         powershell -Command "if ((docker inspect -f '{{.State.Health.Status}}' retail-new) -ne 'healthy') { exit 1 }"
                         """
