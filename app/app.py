@@ -19,12 +19,12 @@ class RetailHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            self.send_response(200)
+            self.send_response(500)
             self.end_headers()
             self.wfile.write(b"OK")
 
         elif self.path == "/":
-            self.send_response(200)
+            self.send_response(500)
             self.end_headers()
             self.wfile.write(
                 f"Retail application - Version {VERSION}".encode()
