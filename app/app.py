@@ -5,5 +5,8 @@ def payment():
 def product():
     return "Retail product"
 
+def stock():
+    return "In stock"
+
 
 print(payment())
