@@ -5,7 +5,7 @@ pipeline {
         choice(name: 'DEPLOYMENT_ACTION', choices: ['DEPLOY', 'ROLLBACK'])
         choice(name: 'ENVIRONMENT', choices: ['UAT', 'PRODUCTION'])
         string(name: 'VERSION', defaultValue: '4.2.1')
-        choice(name: 'CONFIRM_PROD', choices: ['NO', 'YES'])
+        choice(name: 'CONFIRM_PROD', choices: ['YES', 'NO'])
     }
 
     environment {
@@ -25,14 +25,16 @@ pipeline {
                         error('Production confirmation required')
                     }
 
-                   bat "\"C:\\Program Files\\Git\\cmd\\git.exe\" tag --list v${params.VERSION}"
+                    bat "\"C:\\Program Files\\Git\\cmd\\git.exe\" tag --list v${params.VERSION}"
                 }
             }
         }
 
         stage('Build') {
             when {
-                expression { params.DEPLOYMENT_ACTION == 'DEPLOY' }
+                expression {
+                    params.DEPLOYMENT_ACTION == 'DEPLOY'
+                }
             }
             steps {
                 bat "docker build -t ${IMAGE}:${params.VERSION} ."
@@ -41,7 +43,9 @@ pipeline {
 
         stage('Deploy') {
             when {
-                expression { params.DEPLOYMENT_ACTION == 'DEPLOY' }
+                expression {
+                    params.DEPLOYMENT_ACTION == 'DEPLOY'
+                }
             }
             steps {
                 script {
@@ -56,13 +60,15 @@ pipeline {
                           ${IMAGE}:${params.VERSION}
                         """
 
-                        bat 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -Command "Start-Sleep -Seconds 15"'
+                        bat '"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Start-Sleep -Seconds 15"'
+
                         bat """
-                        powershell -Command "if ((docker inspect -f '{{.State.Health.Status}}' retail-new) -ne 'healthy') { exit 1 }"
+                        "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "if ((docker inspect -f '{{.State.Health.Status}}' retail-new) -ne 'healthy') { exit 1 }"
                         """
 
                         echo "NEW VERSION HEALTHY"
                     }
+
                     catch (e) {
                         echo "HEALTH CHECK FAILED"
                         echo "ROLLING BACK TO ${OLD_VERSION}"
@@ -75,10 +81,10 @@ pipeline {
                           ${IMAGE}:${OLD_VERSION}
                         """
 
-                        bat 'powershell -Command "Start-Sleep -Seconds 15"'
+                        bat '"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Start-Sleep -Seconds 15"'
 
                         bat """
-                        powershell -Command "if ((docker inspect -f '{{.State.Health.Status}}' retail-app) -ne 'healthy') { exit 1 }"
+                        "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "if ((docker inspect -f '{{.State.Health.Status}}' retail-new) -ne 'healthy') { exit 1 }"
                         """
 
                         echo "ROLLBACK VERIFIED: ${OLD_VERSION}"
@@ -94,6 +100,7 @@ pipeline {
         success {
             echo "DEPLOYMENT SUCCESSFUL"
         }
+
         failure {
             echo "DEPLOYMENT FAILED - CHECK ROLLBACK"
         }
